@@ -1,0 +1,72 @@
+# inserting libraries for face recognition
+import cv2
+import numpy as np
+import time
+import pickle
+
+#crearing Haar Cascade for face identifaction
+face_cap = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
+
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.read("trainer.yml")
+
+labels = {"person_name": 1}
+with open("labels.pickle", 'rb') as f:
+   og_labels = pickle.load(f)
+   labels = {v:k for k,v in og_labels.items()}
+
+# Calling webcam module for access
+cap= cv2.VideoCapture(0)
+
+i=0
+#retriving ret frame for camera
+while(True):
+    #capturing the frame to showcase
+    ret,frame = cap.read()
+
+    #change the frame to grayscale because it is easy for acessing the image as it is
+    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+
+    # Application of Haar cascade for face identification in real frame
+    faces = face_cap.detectMultiScale(gray,1.7,5)
+
+    #determining the coordinate values for the face object
+    for (x,y,w,h) in faces:
+        print (x,y,w,h)
+
+        #Detecting the components of the face
+        region_det = gray[y:y+h, x:x+w]
+        face_color = frame[y:y+h, x:x+w]
+
+        # resizing the face to 50x50x3
+        fc = cv2.resize(region_det,(50,50))
+
+        face_color = frame[y:y+h, x:x+w]
+        id,conf = recognizer.predict(region_det)
+        if conf>=45 and conf<=85:
+            print(id)
+            print(labels[id])
+            cv2.putText(frame, labels[id],(x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,0,255),2,cv2.LINE_AA)
+
+        
+        #saving image in a jpg format
+        img_item = "image.jpg"
+
+        #writing the image
+        cv2.imwrite(img_item, region_det)
+        
+
+        #drawing rectangle for the face recognition
+        #color range for the determining the face in the frame
+        cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,255),5)
+
+    #Display the result frame
+    cv2.imshow('frame',frame)
+    #Display the gray scale frame
+    cv2.imshow('frame2',gray)
+    
+    if cv2.waitKey(20) & 0xFF ==ord('q'):
+        break
+# after the completiion of source destroy the window
+cap.release()
+cv2.destroyAllWindows()
